@@ -1,0 +1,7 @@
+streamlit
+earthengine-api
+geemap
+geopandas
+fiona
+pyproj
+shapely
