@@ -13,7 +13,7 @@ import shapely.wkb
 import base64
 
 # =========================================================
-# 1. KONFIGURASI TAMPILAN (CSS FIX COLOR)
+# 1. KONFIGURASI TAMPILAN (CSS FIX TOTAL)
 # =========================================================
 st.set_page_config(page_title="Analisis PAPAPS", layout="wide", page_icon="🌲")
 
@@ -22,7 +22,7 @@ def set_background(image_file):
         data = f.read()
     bin_str = base64.b64encode(data).decode()
     
-    # CSS Custom: Background Gambar + Konten Putih + Teks Hitam (Wajib)
+    # CSS Custom: Memaksa Tampilan Light Mode di dalam Container
     page_bg_img = f"""
     <style>
     /* 1. Background Gambar Hutan */
@@ -39,9 +39,9 @@ def set_background(image_file):
         background-color: rgba(0,0,0,0);
     }}
 
-    /* 3. Kotak Konten (Glassmorphism) */
+    /* 3. Kotak Konten (Putih Bersih) */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.95); /* Putih Pekat 95% */
+        background-color: rgba(255, 255, 255, 0.95); 
         border-radius: 15px;
         padding: 3rem !important;
         margin-top: 2rem;
@@ -49,30 +49,52 @@ def set_background(image_file):
         max-width: 1200px;
     }}
     
-    /* 4. FIX WARNA TEKS (PENTING BIAR KELIHATAN) */
-    /* Paksa semua judul jadi Hijau Tua */
+    /* 4. FIX WARNA TEKS (Paksa Hitam/Hijau) */
     h1, h2, h3, h4, h5, h6 {{
         color: #1b5e20 !important; 
         font-weight: 700 !important;
     }}
-    
-    /* Paksa semua teks biasa jadi Hitam/Abu Tua */
     p, div, label, span, li {{
         color: #212121 !important;
     }}
     
-    /* Garis Pembatas */
-    hr {{
-        border-top: 3px solid #1b5e20 !important;
-        margin-top: 0px;
-        margin-bottom: 30px;
+    /* 5. FIX DROPDOWN & INPUT (ANTI DARK MODE) */
+    /* Memaksa background input box jadi putih dan teks hitam */
+    .stSelectbox div[data-baseweb="select"] > div {{
+        background-color: white !important;
+        color: black !important;
+        border-color: #ccc !important;
     }}
     
-    /* Perbaikan warna teks di dalam Widget (Dropdown/Upload) */
-    .stSelectbox label, .stFileUploader label {{
-        color: #1b5e20 !important;
-        font-weight: bold !important;
-        font-size: 1.1em !important;
+    /* Memaksa POP-UP Menu Dropdown jadi Putih */
+    div[data-baseweb="popover"] {{
+        background-color: white !important;
+    }}
+    
+    /* Memaksa Pilihan di dalam Dropdown jadi Hitam */
+    div[data-baseweb="popover"] div, div[data-baseweb="popover"] li {{
+        color: black !important;
+        background-color: white !important;
+    }}
+    
+    /* Efek Hover di Dropdown (biar kelihatan pas dipilih) */
+    div[data-baseweb="menu"] li:hover {{
+        background-color: #e8f5e9 !important; /* Hijau muda pas di-hover */
+        color: black !important;
+    }}
+
+    /* Upload Box */
+    [data-testid="stFileUploader"] {{
+        background-color: #f9f9f9 !important;
+        border-radius: 10px;
+        padding: 10px;
+    }}
+
+    /* Tombol Primary */
+    .stButton button {{
+        background-color: #1b5e20 !important;
+        color: white !important;
+        border: none;
     }}
     </style>
     """
@@ -82,9 +104,9 @@ def set_background(image_file):
 if os.path.exists("hutan.jpg"):
     set_background("hutan.jpg")
 
-# Judul Utama (Updated)
+# Judul Utama
 st.markdown("<h1 style='text-align: center;'>🌲 Analisis Peta Arahan Perhutanan Sosial</h1>", unsafe_allow_html=True)
-st.markdown("<hr>", unsafe_allow_html=True)
+st.markdown("<hr style='border-top: 3px solid #1b5e20;'>", unsafe_allow_html=True)
 
 # =========================================================
 # 2. AUTH GEE
@@ -104,7 +126,7 @@ except Exception as e:
     st.stop()
 
 # =========================================================
-# 3. MAPPING PROVINSI (LENGKAP)
+# 3. MAPPING PROVINSI
 # =========================================================
 ASSET_MAPPING = {
     "Jawa Tengah & DIY": "JatengJogja",
@@ -121,7 +143,7 @@ ASSET_MAPPING = {
 }
 
 # =========================================================
-# 4. FUNGSI LOGIKA (TETAP SAMA)
+# 4. FUNGSI LOGIKA
 # =========================================================
 def get_sanitized_geometry(zip_file):
     temp_dir = "temp_input"
