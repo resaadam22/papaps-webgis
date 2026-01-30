@@ -10,52 +10,63 @@ import glob
 from shapely.geometry import shape, mapping
 from shapely.ops import transform
 import shapely.wkb
-import base64 # Tambahan library untuk background image
+import base64
 
 # =========================================================
-# 1. KONFIGURASI HALAMAN & FUNGSI BACKGROUND
+# 1. KONFIGURASI TAMPILAN (CSS GLASSMORPHISM)
 # =========================================================
 st.set_page_config(page_title="PAPAPS WebGIS Pro", layout="wide", page_icon="🌲")
 
-# --- FUNGSI BARU: SET BACKGROUND IMAGE ---
 def set_background(image_file):
-    """
-    Fungsi untuk mengubah file gambar lokal menjadi background CSS Streamlit.
-    """
     with open(image_file, "rb") as f:
         data = f.read()
     bin_str = base64.b64encode(data).decode()
+    
+    # CSS Custom untuk Background + Kotak Transparan
     page_bg_img = f"""
     <style>
-    .stApp {{
+    /* 1. Pasang Gambar Hutan sebagai Background Full */
+    [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/jpg;base64,{bin_str}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
     }}
-    # ... opsional: membuat container utama agak transparan agar tulisan terbaca ...
-    .main {{
-        background-color: rgba(255, 255, 255, 0.85); 
-        padding: 20px;
+    
+    /* 2. Transparansi Header Streamlit */
+    [data-testid="stHeader"] {{
+        background-color: rgba(0,0,0,0);
+    }}
+
+    /* 3. Kotak Putih Transparan (Glassmorphism) untuk Konten */
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.92); /* Putih 92% */
         border-radius: 15px;
+        padding: 3rem !important;
+        margin-top: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        max-width: 1200px;
+    }}
+    
+    /* 4. Perbaikan Warna Teks Heading */
+    h1, h2, h3 {{
+        color: #1b5e20 !important; /* Hijau Tua Hutan */
     }}
     </style>
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Pasang background jika filenya ada
+# Pasang Background
 if os.path.exists("hutan.jpg"):
     set_background("hutan.jpg")
 
-# Judul Halaman
-st.markdown("""
-    <h1 style='text-align: center; color: #1b5e20;'>🌲 Sistem Analisis Spasial PAPAPS</h1>
-    <hr style='border: 2px solid #1b5e20;'>
-""", unsafe_allow_html=True)
+# Judul Utama
+st.markdown("<h1 style='text-align: center;'>🌲 Sistem Analisis Spasial PAPAPS</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #444;'>Direktorat Jenderal Perhutanan Sosial dan Kemitraan Lingkungan</p><hr>", unsafe_allow_html=True)
 
 # =========================================================
-# 2. AUTH GEE (SUPPORT CLOUD & LOCAL)
+# 2. AUTH GEE
 # =========================================================
 try:
     if "gcp_service_account" in st.secrets:
@@ -68,11 +79,30 @@ try:
     else:
         ee.Initialize(project='papaps')
 except Exception as e:
-    st.error(f"Gagal Koneksi ke Google Earth Engine: {e}")
+    st.error(f"Gagal Koneksi GEE: {e}")
     st.stop()
 
 # =========================================================
-# 3. FUNGSI SANITIZER GEOMETRI (V31)
+# 3. LOGIKA MAPPING PROVINSI (LENGKAP)
+# =========================================================
+# Key: Apa yang dilihat user di Dropdown
+# Value: Suffix Asset di GEE (PAPAPS_Suffix)
+ASSET_MAPPING = {
+    "Jawa Tengah & DIY": "JatengJogja",
+    "Jawa Barat & Jakarta": "Jabar",
+    "Jawa Timur": "Jatim",
+    "Bali": "Bali",
+    "Nusa Tenggara (NTB/NTT)": "Nusra",
+    "Sumatera (Aceh, Sumut, Sumbar)": "Sumatera1",
+    "Sumatera (Riau, Jambi, Sumsel, Lampung, Babel, Bengkulu)": "Sumatera2",
+    "Kalimantan": "Kalimantan",
+    "Sulawesi & Gorontalo": "Sulawesi",
+    "Maluku": "Maluku",
+    "Papua": "Papua"
+}
+
+# =========================================================
+# 4. FUNGSI SANITIZER & LOGIKA (TETAP SAMA)
 # =========================================================
 def get_sanitized_geometry(zip_file):
     temp_dir = "temp_input"
@@ -89,12 +119,8 @@ def get_sanitized_geometry(zip_file):
         geom = geom.buffer(0).simplify(0.00001, preserve_topology=True)
         geom_json = mapping(geom)
         ee_features.append(ee.Feature(ee.Geometry(geom_json), {'dummy': 1}))
-    fc = ee.FeatureCollection(ee_features)
-    return fc.geometry()
+    return ee.FeatureCollection(ee_features).geometry()
 
-# =========================================================
-# 4. LOGIKA PAPAPS V15 (TETAP UTUH)
-# =========================================================
 def calculate_attributes(feature):
     def to_num(cond): return ee.Number(ee.Algorithms.If(cond, 1, 0))
     f_kws = ee.String(ee.Algorithms.If(feature.get('F_KWS'), feature.get('F_KWS'), '')).trim().toUpperCase()
@@ -133,46 +159,51 @@ def calculate_attributes(feature):
     return feature.set({'Arahan': str_arahan, 'Kewajiban': list_kewajiban.sort().join(''), 'Ruang': ruang})
 
 # =========================================================
-# 5. MAIN APP EKSEKUSI
+# 5. EKSEKUSI
 # =========================================================
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.markdown("### 📁 Panel Input")
-    prov = st.selectbox("Pilih Wilayah Kerja:", ['Jawa Tengah', 'Jawa Barat', 'Jawa Timur', 'Kalimantan', 'Sumatera1', 'Sumatera2', 'Papua'])
-    uploaded_file = st.file_uploader("Upload File SHP (.ZIP)", type="zip", help="Pastikan ZIP berisi file .shp, .shx, .dbf, dan .prj")
+    # Dropdown dengan Nama Provinsi Lengkap
+    selected_prov_name = st.selectbox("Pilih Wilayah Kerja:", list(ASSET_MAPPING.keys()))
+    uploaded_file = st.file_uploader("Upload File SHP (.ZIP)", type="zip", help="File harus berisi .shp, .shx, .dbf, .prj")
 
 if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
     with col2:
         status = st.status("Memproses data...", expanded=True)
         try:
-            # PROSES GEE (Sama seperti V32)
             status.write("⚙️ Membersihkan geometri input...")
             user_geom = get_sanitized_geometry(uploaded_file)
-            mapping = {'Jawa Tengah': 'JatengJogja', 'Jawa Barat': 'Jabar', 'Jawa Timur': 'Jatim', 'Sumatera1': 'Sumatera1', 'Sumatera2': 'Sumatera2', 'Kalimantan': 'Kalimantan', 'Papua': 'Papua'}
-            asset_path = f"projects/papaps/assets/PAPAPS_{mapping.get(prov, 'JatengJogja')}"
+            
+            # AMBIL SUFFIX ASSET BERDASARKAN PILIHAN USER
+            asset_suffix = ASSET_MAPPING[selected_prov_name]
+            asset_path = f"projects/papaps/assets/PAPAPS_{asset_suffix}"
+            
+            status.write(f"🛰️ Mengakses data Asset: {asset_suffix}...")
             union_tematik = ee.FeatureCollection(asset_path)
-            status.write("🛰️ Melakukan overlay di server Google...")
+            
             clipped = union_tematik.filterBounds(user_geom).map(lambda f: f.intersection(user_geom, 1))
             processed = clipped.map(lambda f: f.set('SAWIT', 0))
             calculated = processed.map(calculate_attributes)
-            status.write("📐 Menghitung luas (Proyeksi CEA)...")
+            
+            status.write("📐 Menghitung luas (CEA)...")
             wkt_cea = 'PROJCS["World_Cylindrical_Equal_Area",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.0174532925199433]],PROJECTION["Cylindrical_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["Central_Meridian",0],PARAMETER["Standard_Parallel_1",0],UNIT["Meter",1]]'
             final_fc = calculated.map(lambda f: f.setGeometry(f.geometry().buffer(0.1, 1))).map(lambda f: f.set('luas_ha', f.geometry().area(1, wkt_cea).divide(10000)))
             
-            status.write("📥 Mengunduh hasil perhitungan...")
+            status.write("📥 Mengunduh hasil...")
             gdf_raw = geemap.ee_to_gdf(final_fc.select(['Arahan', 'Kewajiban', 'Ruang', 'luas_ha']))
             
             if gdf_raw.empty:
                 status.update(label="Selesai, namun tidak ada data.", state="warning", expanded=False)
-                st.warning("Area input tidak beririsan dengan data Arahan di provinsi ini.")
+                st.warning("Area input tidak beririsan dengan data Arahan di wilayah ini.")
             else:
-                status.write("🧩 Melakukan Dissolve dan formatting SHP...")
+                status.write("🧩 Melakukan Dissolve dan formatting...")
                 dissolved = gdf_raw.dissolve(by=['Arahan', 'Kewajiban', 'Ruang'], aggfunc={'luas_ha': 'sum'}).reset_index()
                 dissolved.set_crs("EPSG:4326", inplace=True, allow_override=True)
                 
                 status.update(label="✅ Analisis Berhasil!", state="complete", expanded=False)
-                st.success("Data siap. Silakan download hasil lengkapnya di bawah.")
+                st.success(f"Analisis Selesai untuk wilayah: {selected_prov_name}")
 
                 st.markdown("### 📊 Rekapitulasi Luas")
                 st.dataframe(dissolved.drop(columns=['geometry']), use_container_width=True)
@@ -185,8 +216,8 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
                 
                 with open("PAPAPS_Output.zip", "rb") as f:
                     st.download_button("📥 DOWNLOAD HASIL LENGKAP (.ZIP)", f, "PAPAPS_Output.zip", type="primary")
-                    
-                # PETA PREVIEW (SILENT ERROR MODE)
+                
+                # PETA PREVIEW (Silent Error Mode)
                 try:
                     st.markdown("### 🗺️ Peta Preview")
                     m = geemap.Map()
@@ -195,8 +226,7 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
                     m.addLayer(geemap.gdf_to_ee(dissolved), {'color':'red'}, "Hasil Arahan PAPAPS")
                     m.to_streamlit(height=500)
                 except Exception:
-                    # JIKA GAGAL, LEWATI SAJA (SILENT ERROR)
-                    pass 
+                    pass # Lewati saja jika gagal load peta
 
         except Exception as e:
             status.update(label="Terjadi Kesalahan!", state="error")
