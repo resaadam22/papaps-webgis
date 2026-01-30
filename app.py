@@ -13,7 +13,7 @@ import shapely.wkb
 import base64
 
 # =========================================================
-# 1. KONFIGURASI TAMPILAN (CSS FIX TOTAL)
+# 1. KONFIGURASI TAMPILAN (CSS FORCE LIGHT MODE)
 # =========================================================
 st.set_page_config(page_title="Analisis PAPAPS", layout="wide", page_icon="🌲")
 
@@ -22,7 +22,7 @@ def set_background(image_file):
         data = f.read()
     bin_str = base64.b64encode(data).decode()
     
-    # CSS Custom: Memaksa Tampilan Light Mode di dalam Container
+    # CSS Custom: Memaksa Tampilan widget jadi Terang (Light Mode)
     page_bg_img = f"""
     <style>
     /* 1. Background Gambar Hutan */
@@ -39,7 +39,7 @@ def set_background(image_file):
         background-color: rgba(0,0,0,0);
     }}
 
-    /* 3. Kotak Konten (Putih Bersih) */
+    /* 3. Kotak Konten Utama (Putih) */
     .block-container {{
         background-color: rgba(255, 255, 255, 0.95); 
         border-radius: 15px;
@@ -49,52 +49,64 @@ def set_background(image_file):
         max-width: 1200px;
     }}
     
-    /* 4. FIX WARNA TEKS (Paksa Hitam/Hijau) */
-    h1, h2, h3, h4, h5, h6 {{
-        color: #1b5e20 !important; 
-        font-weight: 700 !important;
-    }}
-    p, div, label, span, li {{
-        color: #212121 !important;
-    }}
+    /* 4. PAKSA WARNA TEKS JUDUL & LABEL */
+    h1, h2, h3, h4, h5, h6 {{ color: #1b5e20 !important; font-weight: 700 !important; }}
+    p, label, span, div {{ color: #212121 !important; }}
     
-    /* 5. FIX DROPDOWN & INPUT (ANTI DARK MODE) */
-    /* Memaksa background input box jadi putih dan teks hitam */
-    .stSelectbox div[data-baseweb="select"] > div {{
-        background-color: white !important;
-        color: black !important;
-        border-color: #ccc !important;
-    }}
+    /* ------------------------------------------------------- */
+    /* BAGIAN PENTING: PAKSA WIDGET JADI PUTIH (ANTI DARK MODE) */
+    /* ------------------------------------------------------- */
     
-    /* Memaksa POP-UP Menu Dropdown jadi Putih */
-    div[data-baseweb="popover"] {{
-        background-color: white !important;
+    /* A. DROPDOWN (SELECTBOX) */
+    /* Paksa kotak dropdown jadi Putih, Teks Hitam, Border Abu */
+    div[data-baseweb="select"] > div {{
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #cccccc !important;
     }}
-    
-    /* Memaksa Pilihan di dalam Dropdown jadi Hitam */
-    div[data-baseweb="popover"] div, div[data-baseweb="popover"] li {{
-        color: black !important;
-        background-color: white !important;
+    /* Ikon Panah di Dropdown jadi Hitam */
+    div[data-baseweb="select"] svg {{
+        fill: #000000 !important;
     }}
-    
-    /* Efek Hover di Dropdown (biar kelihatan pas dipilih) */
+    /* Pilihan di dalam Menu Dropdown */
+    div[data-baseweb="popover"], div[data-baseweb="menu"] {{
+        background-color: #ffffff !important;
+    }}
+    div[data-baseweb="menu"] li {{
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }}
+    /* Saat mouse diarahkan (Hover) */
     div[data-baseweb="menu"] li:hover {{
-        background-color: #e8f5e9 !important; /* Hijau muda pas di-hover */
-        color: black !important;
+        background-color: #e8f5e9 !important; /* Hijau muda */
+        color: #000000 !important;
     }}
-
-    /* Upload Box */
-    [data-testid="stFileUploader"] {{
-        background-color: #f9f9f9 !important;
-        border-radius: 10px;
-        padding: 10px;
+    
+    /* B. FILE UPLOADER */
+    /* Paksa area upload jadi Abu-abu Terang (bukan Hitam) */
+    section[data-testid="stFileUploaderDropzone"] {{
+        background-color: #f0f2f6 !important;
+        border: 1px dashed #1b5e20 !important;
     }}
-
-    /* Tombol Primary */
+    /* Teks 'Drag and drop' jadi Hitam */
+    section[data-testid="stFileUploaderDropzone"] div, 
+    section[data-testid="stFileUploaderDropzone"] span, 
+    section[data-testid="stFileUploaderDropzone"] small {{
+        color: #31333F !important;
+    }}
+    /* Tombol 'Browse Files' jadi Putih */
+    section[data-testid="stFileUploaderDropzone"] button {{
+        background-color: #ffffff !important;
+        color: #31333F !important;
+        border: 1px solid #ccc !important;
+    }}
+    
+    /* C. TOMBOL PROSES */
     .stButton button {{
         background-color: #1b5e20 !important;
         color: white !important;
         border: none;
+        font-weight: bold;
     }}
     </style>
     """
