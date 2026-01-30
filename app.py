@@ -14,7 +14,7 @@ import shapely.wkb
 # =========================================================
 # 1. KONFIGURASI HALAMAN & UI BARU
 # =========================================================
-st.set_page_config(page_title="PAPAPS WebGIS Pro", layout="wide", page_icon="🌲")
+st.set_page_config(page_title="PAPAPS WebGIS 1.0", layout="wide", page_icon="🌲")
 
 # --- TAMBAHAN UI: GAMBAR HEADER ---
 # Pastikan ada file 'hutan.jpg' di folder yang sama dengan app.py
@@ -216,4 +216,5 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
         except Exception as e:
             status.update(label="Terjadi Kesalahan!", state="error")
             st.error(f"Detail Error: {e}")
+
             st.info("Tips: Pastikan file ZIP SHP Anda valid dan memiliki proyeksi.")
