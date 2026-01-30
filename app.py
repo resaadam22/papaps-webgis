@@ -13,19 +13,19 @@ import shapely.wkb
 import base64
 
 # =========================================================
-# 1. KONFIGURASI TAMPILAN (CSS GLASSMORPHISM)
+# 1. KONFIGURASI TAMPILAN (CSS FIX COLOR)
 # =========================================================
-st.set_page_config(page_title="PAPAPS WebGIS Pro", layout="wide", page_icon="🌲")
+st.set_page_config(page_title="Analisis PAPAPS", layout="wide", page_icon="🌲")
 
 def set_background(image_file):
     with open(image_file, "rb") as f:
         data = f.read()
     bin_str = base64.b64encode(data).decode()
     
-    # CSS Custom untuk Background + Kotak Transparan
+    # CSS Custom: Background Gambar + Konten Putih + Teks Hitam (Wajib)
     page_bg_img = f"""
     <style>
-    /* 1. Pasang Gambar Hutan sebagai Background Full */
+    /* 1. Background Gambar Hutan */
     [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/jpg;base64,{bin_str}");
         background-size: cover;
@@ -34,24 +34,45 @@ def set_background(image_file):
         background-attachment: fixed;
     }}
     
-    /* 2. Transparansi Header Streamlit */
+    /* 2. Header Transparan */
     [data-testid="stHeader"] {{
         background-color: rgba(0,0,0,0);
     }}
 
-    /* 3. Kotak Putih Transparan (Glassmorphism) untuk Konten */
+    /* 3. Kotak Konten (Glassmorphism) */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.92); /* Putih 92% */
+        background-color: rgba(255, 255, 255, 0.95); /* Putih Pekat 95% */
         border-radius: 15px;
         padding: 3rem !important;
         margin-top: 2rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         max-width: 1200px;
     }}
     
-    /* 4. Perbaikan Warna Teks Heading */
-    h1, h2, h3 {{
-        color: #1b5e20 !important; /* Hijau Tua Hutan */
+    /* 4. FIX WARNA TEKS (PENTING BIAR KELIHATAN) */
+    /* Paksa semua judul jadi Hijau Tua */
+    h1, h2, h3, h4, h5, h6 {{
+        color: #1b5e20 !important; 
+        font-weight: 700 !important;
+    }}
+    
+    /* Paksa semua teks biasa jadi Hitam/Abu Tua */
+    p, div, label, span, li {{
+        color: #212121 !important;
+    }}
+    
+    /* Garis Pembatas */
+    hr {{
+        border-top: 3px solid #1b5e20 !important;
+        margin-top: 0px;
+        margin-bottom: 30px;
+    }}
+    
+    /* Perbaikan warna teks di dalam Widget (Dropdown/Upload) */
+    .stSelectbox label, .stFileUploader label {{
+        color: #1b5e20 !important;
+        font-weight: bold !important;
+        font-size: 1.1em !important;
     }}
     </style>
     """
@@ -61,9 +82,9 @@ def set_background(image_file):
 if os.path.exists("hutan.jpg"):
     set_background("hutan.jpg")
 
-# Judul Utama
-st.markdown("<h1 style='text-align: center;'>🌲 Sistem Analisis Spasial PAPAPS</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #444;'>Direktorat Jenderal Perhutanan Sosial dan Kemitraan Lingkungan</p><hr>", unsafe_allow_html=True)
+# Judul Utama (Updated)
+st.markdown("<h1 style='text-align: center;'>🌲 Analisis Peta Arahan Perhutanan Sosial</h1>", unsafe_allow_html=True)
+st.markdown("<hr>", unsafe_allow_html=True)
 
 # =========================================================
 # 2. AUTH GEE
@@ -83,10 +104,8 @@ except Exception as e:
     st.stop()
 
 # =========================================================
-# 3. LOGIKA MAPPING PROVINSI (LENGKAP)
+# 3. MAPPING PROVINSI (LENGKAP)
 # =========================================================
-# Key: Apa yang dilihat user di Dropdown
-# Value: Suffix Asset di GEE (PAPAPS_Suffix)
 ASSET_MAPPING = {
     "Jawa Tengah & DIY": "JatengJogja",
     "Jawa Barat & Jakarta": "Jabar",
@@ -102,7 +121,7 @@ ASSET_MAPPING = {
 }
 
 # =========================================================
-# 4. FUNGSI SANITIZER & LOGIKA (TETAP SAMA)
+# 4. FUNGSI LOGIKA (TETAP SAMA)
 # =========================================================
 def get_sanitized_geometry(zip_file):
     temp_dir = "temp_input"
@@ -165,7 +184,6 @@ col1, col2 = st.columns([1, 2])
 
 with col1:
     st.markdown("### 📁 Panel Input")
-    # Dropdown dengan Nama Provinsi Lengkap
     selected_prov_name = st.selectbox("Pilih Wilayah Kerja:", list(ASSET_MAPPING.keys()))
     uploaded_file = st.file_uploader("Upload File SHP (.ZIP)", type="zip", help="File harus berisi .shp, .shx, .dbf, .prj")
 
@@ -176,7 +194,6 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
             status.write("⚙️ Membersihkan geometri input...")
             user_geom = get_sanitized_geometry(uploaded_file)
             
-            # AMBIL SUFFIX ASSET BERDASARKAN PILIHAN USER
             asset_suffix = ASSET_MAPPING[selected_prov_name]
             asset_path = f"projects/papaps/assets/PAPAPS_{asset_suffix}"
             
@@ -217,7 +234,7 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
                 with open("PAPAPS_Output.zip", "rb") as f:
                     st.download_button("📥 DOWNLOAD HASIL LENGKAP (.ZIP)", f, "PAPAPS_Output.zip", type="primary")
                 
-                # PETA PREVIEW (Silent Error Mode)
+                # PETA (SILENT ERROR)
                 try:
                     st.markdown("### 🗺️ Peta Preview")
                     m = geemap.Map()
@@ -226,7 +243,7 @@ if uploaded_file and st.button("🚀 JALANKAN ANALISIS", type="primary"):
                     m.addLayer(geemap.gdf_to_ee(dissolved), {'color':'red'}, "Hasil Arahan PAPAPS")
                     m.to_streamlit(height=500)
                 except Exception:
-                    pass # Lewati saja jika gagal load peta
+                    pass 
 
         except Exception as e:
             status.update(label="Terjadi Kesalahan!", state="error")
